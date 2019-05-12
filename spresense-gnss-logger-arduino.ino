@@ -4,6 +4,13 @@
 #include <GNSSPositionData.h>
 #include "gpsutils/cxd56_gnss_nmea.h"
 
+#define PIN_SW0 PIN_D02
+#define PIN_SW1 PIN_D09
+#define PIN_SW2 PIN_D06
+#define PIN_SW3 PIN_D05
+#define PIN_SW4 PIN_D03
+
+
 #define STRING_BUFFER_SIZE  128       /**< %Buffer size */
 char StringBuffer[STRING_BUFFER_SIZE];
 
@@ -38,6 +45,13 @@ void setup() {
   ledOn(PIN_LED1);
   ledOn(PIN_LED2);
   ledOn(PIN_LED3);
+
+  pinMode(PIN_SW0, OUTPUT);
+  pinMode(PIN_SW1, OUTPUT);
+  pinMode(PIN_SW2, OUTPUT);
+  pinMode(PIN_SW3, OUTPUT);
+  pinMode(PIN_SW4, OUTPUT);
+  
 
   /* Set Debug mode to Info */
   Gnss.setDebugMode(PrintInfo);
@@ -243,7 +257,7 @@ void log_write(struct cxd56_gnss_positiondata_s *posdatp){
   NMEA_Output(posdatp);
   if (fp!=NULL) {
     ledOff(PIN_LED3);
-    if(posdatp->receiver.time.sec == 59){
+    if(posdatp->receiver.time.sec == 59 || digitalRead(PIN_SW0) == 0){
       fflush(fp);
       int fd = fileno(fp);
       fsync(fd);
