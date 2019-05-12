@@ -20,58 +20,6 @@ static int outnmea(FAR char *buf);
 static int outbin(FAR char *buf, uint32_t len);
 
 /**
- * @brief Turn on / off the LED0 for CPU active notification.
- */
-static void Led_isActive(void)
-{
-  static int state = 1;
-  if (state == 1)
-  {
-    ledOn(PIN_LED0);
-    state = 0;
-  }
-  else
-  {
-    ledOff(PIN_LED0);
-    state = 1;
-  }
-}
-
-/**
- * @brief Turn on / off the LED1 for positioning state notification.
- *
- * @param [in] state Positioning state
- */
-static void Led_isPosfix(bool state)
-{
-  if (state)
-  {
-    ledOn(PIN_LED1);
-  }
-  else
-  {
-    ledOff(PIN_LED1);
-  }
-}
-
-/**
- * @brief Turn on / off the LED3 for error notification.
- *
- * @param [in] state Error state
- */
-static void Led_isError(bool state)
-{
-  if (state)
-  {
-    ledOn(PIN_LED3);
-  }
-  else
-  {
-    ledOff(PIN_LED3);
-  }
-}
-
-/**
  * @brief Activate GNSS device and start positioning.
  */
 void setup() {
@@ -140,7 +88,10 @@ void setup() {
   /* Set error LED. */
   if (error_flag == 1)
   {
-    Led_isError(true);
+    ledOn(PIN_LED0);
+    ledOn(PIN_LED1);
+    ledOn(PIN_LED2);
+    ledOn(PIN_LED3);
     exit(0);
   }
 
@@ -262,7 +213,10 @@ void log_open(char *filename){
   printf("Open %s\n", filename);
   fp = fopen(filename, "a");
   if (fp == NULL) {
+    ledOff(PIN_LED3);
     printf("Open error %s\n", filename);
+  }else{
+    ledOn(PIN_LED3);
   }
 }
 
@@ -288,6 +242,7 @@ void log_write(struct cxd56_gnss_positiondata_s *posdatp){
   }
   NMEA_Output(posdatp);
   if (fp!=NULL) {
+    ledOff(PIN_LED3);
     if(posdatp->receiver.time.sec == 59){
       fflush(fp);
       int fd = fileno(fp);
@@ -297,6 +252,7 @@ void log_write(struct cxd56_gnss_positiondata_s *posdatp){
       fclose(fp);
       fp = NULL;
     }
+    ledOn(PIN_LED3);
   }
 }
 
@@ -320,7 +276,9 @@ static int outnmea(FAR char *buf)
 {
   int ret = 0;
   if (fp != NULL){
+    ledOff(PIN_LED3);
     ret = fputs(buf, fp);
+    ledOn(PIN_LED3);
   }
   Serial.print(buf);
   return ret;
@@ -346,19 +304,22 @@ void loop()
   static int LoopCount = 0;
   static int LastPrintMin = 0;
 
-  /* Blink LED. */
-  Led_isActive();
-
+  
   /* Check update. */
   if (Gnss.waitUpdate(-1))
   {
+    /* Blink LED. */
+    ledOn(PIN_LED0);
     /* Get NaviData. */
     SpNavData NavData;
     Gnss.getNavData(&NavData);
 
     /* Set posfix LED. */
-    bool LedSet = (NavData.posDataExist && (NavData.posFixMode != FixInvalid));
-    Led_isPosfix(LedSet);
+    if(NavData.posDataExist && (NavData.posFixMode != FixInvalid)){
+      ledOn(PIN_LED1);
+    }else{
+      ledOff(PIN_LED1);
+    }
 
     /* Print satellite information every minute. */
     if (NavData.time.minute != LastPrintMin)
@@ -382,6 +343,7 @@ void loop()
     /* Not update. */
     Serial.println("data not update");
   }
+  ledOff(PIN_LED0);
 
 }
 
